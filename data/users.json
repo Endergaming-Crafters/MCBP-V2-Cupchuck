@@ -1,0 +1,9 @@
+{
+  "admin": {
+    "password": "Administrator",
+    "role": "admin",
+    "permissions": [],
+    "created": "2024-01-01T00:00:00.000Z",
+    "lastLogin": "2026-01-17T16:33:31.832Z"
+  }
+}

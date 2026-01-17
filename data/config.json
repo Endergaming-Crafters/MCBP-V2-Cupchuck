@@ -1,0 +1,15 @@
+{
+  "server": {
+    "port": 3000
+  },
+  "theme": "dark",
+  "background": {
+    "url": "https://www.powerupstack.com/assets/minecraft_wallpaper-BDxiBRY_.webp",
+    "overlay": true,
+    "overlayOpacity": 0.5
+  },
+  "security": {
+    "sessionTimeout": 86400000,
+    "maxLoginAttempts": 5
+  }
+}

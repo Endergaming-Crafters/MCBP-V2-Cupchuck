@@ -1,0 +1,68 @@
+[
+  {
+    "id": "admin",
+    "name": "Administrator",
+    "level": 100,
+    "permissions": [
+      "*"
+    ],
+    "protected": true,
+    "description": "Full system access"
+  },
+  {
+    "id": "bot_master",
+    "name": "Bot Master",
+    "level": 80,
+    "permissions": [
+      "view_bots",
+      "view_users",
+      "view_console",
+      "view_logs",
+      "start_bots",
+      "stop_bots",
+      "create_bots",
+      "create_users",
+      "create_qc",
+      "delete_bots",
+      "delete_users",
+      "delete_qc",
+      "edit_bots",
+      "manage_roles",
+      "send_messages",
+      "execute_commands",
+      "change_theme"
+    ],
+    "protected": false,
+    "description": "Full bot control and QC management"
+  },
+  {
+    "id": "moderator",
+    "name": "Moderator",
+    "level": 50,
+    "permissions": [
+      "view_bots",
+      "start_bots",
+      "stop_bots",
+      "view_console",
+      "send_messages",
+      "use_qc",
+      "create_qc",
+      "edit_qc",
+      "delete_qc"
+    ],
+    "protected": false,
+    "description": "Can operate bots and use quick commands"
+  },
+  {
+    "id": "viewer",
+    "name": "Viewer",
+    "level": 10,
+    "permissions": [
+      "view_bots",
+      "view_console",
+      "change_theme"
+    ],
+    "protected": false,
+    "description": "View-only access"
+  }
+]
