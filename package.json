@@ -1,0 +1,28 @@
+{
+  "name": "mcbp-v2-cupchuck",
+  "version": "2.0.0",
+  "description": "Minecraft Bot Panel V2 - Cupchuck Edition",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "install-deps": "npm install express socket.io mineflayer vec3 body-parser cors --no-optional"
+  },
+  "keywords": [
+    "minecraft",
+    "bot",
+    "panel"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.22.1",
+    "mineflayer": "^4.33.0",
+    "socket.io": "^4.8.1",
+    "vec3": "^0.1.10"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
