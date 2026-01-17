@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCBP V2 - Login</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div id="login-section">
+            <h1>
+                <i class=></i>
+                MCBP V2 <span class="version">Cupchuck</span>
+            </h1>
+            
+            <div id="login-message" class="mb-3" style="color: var(--error-color);"></div>
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" autocomplete="current-password">
+            </div>
+            
+            <div class="form-group">
+                <label for="theme-select">Theme</label>
+                <select id="theme-select">
+                    <option value="auto">Auto (System)</option>
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            
+            <button onclick="login()" class="w-full mt-4">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            
+            <div class="mt-4 text-center text-muted">
+                <small>Default: admin / Administrator</small>
+            </div>
+        </div>
+    </div>
+
+    <script src="../common.js"></script>
+    <script>
+        // Set theme from localStorage or system preference
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('mcbp-theme') || 'auto';
+            document.getElementById('theme-select').value = savedTheme;
+            applyTheme(savedTheme);
+        });
+
+        function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const theme = document.getElementById('theme-select').value;
+            
+            if (!username || !password) {
+                showMessage('Please enter both username and password', 'error');
+                return;
+            }
+            
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    // Save theme preference
+                    localStorage.setItem('mcbp-theme', theme);
+                    
+                    // Save token and user info
+                    localStorage.setItem('mcbp-token', data.token);
+                    localStorage.setItem('mcbp-user', JSON.stringify({
+                        username: data.username,
+                        role: data.role,
+                        permissions: data.permissions
+                    }));
+                    
+                    // Redirect to dashboard
+                    window.location.href = '/dashboard';
+                } else {
+                    showMessage(data.message || 'Login failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                showMessage('Network error. Please try again.', 'error');
+            });
+        }
+
+        function showMessage(message, type = 'error') {
+            const msgDiv = document.getElementById('login-message');
+            msgDiv.textContent = message;
+            msgDiv.style.color = type === 'error' ? 'var(--error-color)' : 'var(--success-color)';
+            
+            // Clear message after 5 seconds
+            setTimeout(() => {
+                msgDiv.textContent = '';
+            }, 5000);
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.body.classList.toggle('light-theme', !prefersDark);
+            } else {
+                document.body.classList.toggle('light-theme', theme === 'light');
+            }
+        }
+    </script>
+</body>
+</html>
