@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - MCBP V2</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <i class=""></i> MCBP V2
+            </div>
+            <div class="version">Cupchuck</div>
+        </div>
+        
+        <div class="topbar-right">
+            <div class="user-info">
+                <i class="fas fa-user"></i>
+                <span id="current-username">Loading...</span>
+            </div>
+            <button onclick="window.location.href='/dashboard'" class="btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button onclick="window.location.href='/roles'" class="btn-secondary">
+                <i class="fas fa-user-tag"></i> Roles
+            </button>
+            <button onclick="logout()" class="btn-secondary">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="navigation mb-4">
+            <button onclick="window.location.href='/dashboard'" class="btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button onclick="window.location.href='/bots'" class="btn-secondary">
+                <i class="fas fa-server"></i> Bots
+            </button>
+            <button onclick="window.location.href='/users'" class="btn">
+                <i class="fas fa-users"></i> Users
+            </button>
+            <button onclick="window.location.href='/roles'" class="btn-secondary">
+                <i class="fas fa-user-tag"></i> Roles
+            </button>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header">
+                <h3><i class="fas fa-users"></i> User Management</h3>
+                <button onclick="showAddUserModal()" class="btn" id="add-user-btn">
+                    <i class="fas fa-plus"></i> Add User
+                </button>
+            </div>
+            <div class="panel-content">
+                <div id="users-table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="no-users-message" class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <p>No users found</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Add New User</h3>
+                <button onclick="closeAddUserModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-username">Username *</label>
+                    <input type="text" id="new-username" placeholder="Enter username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-password">Password *</label>
+                    <input type="password" id="new-password" placeholder="Enter password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-role">Role *</label>
+                    <select id="new-role">
+                        <!-- Roles will be populated -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox">
+                        <input type="checkbox" id="new-user-protected">
+                        <span>Protected (cannot be deleted)</span>
+                    </label>
+                    <small class="text-muted">Only for special system users</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeAddUserModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveNewUser()" class="btn">Create User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit"></i> Edit User</h3>
+                <button onclick="closeEditUserModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Username</label>
+                    <div class="info-value" id="edit-username-display"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-password">New Password</label>
+                    <input type="password" id="edit-password" placeholder="Leave blank to keep current">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-role">Role</label>
+                    <select id="edit-role">
+                        <!-- Roles will be populated -->
+                    </select>
+                </div>
+                
+                <div id="edit-protected-warning" class="alert alert-warning hidden">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This is a protected user and cannot be modified.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeEditUserModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveUserChanges()" class="btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Modal -->
+    <div id="delete-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-times"></i> Delete User</h3>
+                <button onclick="closeDeleteUserModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete user "<span id="delete-username"></span>"?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+                <div id="delete-protected-warning" class="alert alert-warning hidden">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Warning:</strong> This is a protected user and cannot be deleted.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDeleteUserModal()" class="btn-secondary">Cancel</button>
+                <button onclick="confirmDeleteUser()" class="btn-danger" id="confirm-delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../common.js"></script>
+    <script>
+        let currentUser = null;
+        let allRoles = [];
+        let editingUserId = null;
+        let deletingUserId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadUserInfo();
+            loadRoles();
+            loadUsers();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('mcbp-token');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            fetch('/api/verify', {
+                headers: { 'x-auth-token': token }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    localStorage.clear();
+                    window.location.href = '/';
+                }
+            })
+            .catch(() => {
+                localStorage.clear();
+                window.location.href = '/';
+            });
+        }
+
+        function loadUserInfo() {
+            const userStr = localStorage.getItem('mcbp-user');
+            if (userStr) {
+                currentUser = JSON.parse(userStr);
+                document.getElementById('current-username').textContent = currentUser.username;
+                
+                // Show/hide add button based on permissions
+                const canCreateUsers = currentUser.permissions.includes('create_users') || 
+                                      currentUser.permissions.includes('*');
+                document.getElementById('add-user-btn').style.display = canCreateUsers ? '' : 'none';
+            }
+        }
+
+        function loadRoles() {
+            fetch('/api/roles', {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    allRoles = data.roles;
+                    populateRoleDropdowns();
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load roles:', error);
+                showToast('Failed to load roles', 'error');
+            });
+        }
+
+        function populateRoleDropdowns() {
+            const newRoleSelect = document.getElementById('new-role');
+            const editRoleSelect = document.getElementById('edit-role');
+            
+            // Clear existing options
+            newRoleSelect.innerHTML = '';
+            editRoleSelect.innerHTML = '';
+            
+            // Filter roles based on current user's level
+            const currentUserRole = allRoles.find(r => r.id === currentUser.role);
+            const currentUserLevel = currentUserRole ? currentUserRole.level : 0;
+            
+            const availableRoles = allRoles.filter(role => role.level < currentUserLevel);
+            
+            // Add options
+            availableRoles.forEach(role => {
+                const option1 = document.createElement('option');
+                option1.value = role.id;
+                option1.textContent = `${role.name} (Level ${role.level})`;
+                newRoleSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = role.id;
+                option2.textContent = `${role.name} (Level ${role.level})`;
+                editRoleSelect.appendChild(option2);
+            });
+        }
+
+        function loadUsers() {
+            fetch('/api/users', {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    renderUsersTable(data.users);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load users:', error);
+                showToast('Failed to load users', 'error');
+            });
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            const noUsers = document.getElementById('no-users-message');
+            
+            if (!users || Object.keys(users).length === 0) {
+                tbody.innerHTML = '';
+                noUsers.style.display = 'block';
+                return;
+            }
+            
+            noUsers.style.display = 'none';
+            
+            // Convert to array and sort
+            const usersArray = Object.entries(users).map(([username, data]) => ({
+                username,
+                ...data
+            }));
+            
+            // Sort by username
+            usersArray.sort((a, b) => a.username.localeCompare(b.username));
+            
+            tbody.innerHTML = usersArray.map(user => {
+                const currentUserRole = allRoles.find(r => r.id === currentUser.role);
+                const currentUserLevel = currentUserRole ? currentUserRole.level : 0;
+                const userRole = allRoles.find(r => r.id === user.role);
+                const userLevel = userRole ? userRole.level : 0;
+                
+                // Check if current user can modify this user
+                const canModify = currentUserLevel > userLevel && 
+                                 !user.protected && 
+                                 user.username !== currentUser.username;
+                
+                return `
+                    <tr>
+                        <td>
+                            ${user.username}
+                            ${user.protected ? '<span class="badge badge-warning">Protected</span>' : ''}
+                            ${user.username === currentUser.username ? '<span class="badge badge-info">You</span>' : ''}
+                        </td>
+                        <td>${userRole ? userRole.name : user.role}</td>
+                        <td>${formatDate(user.created)}</td>
+                        <td>${user.lastLogin ? formatDate(user.lastLogin) : 'Never'}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button onclick="editUserPrompt('${user.username}')" 
+                                        class="btn-secondary btn-sm"
+                                        ${!canModify ? 'disabled' : ''}>
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button onclick="deleteUserPrompt('${user.username}')" 
+                                        class="btn-danger btn-sm"
+                                        ${!canModify ? 'disabled' : ''}>
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString();
+        }
+
+        function showAddUserModal() {
+            document.getElementById('add-user-modal').classList.add('active');
+            document.getElementById('new-username').focus();
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('add-user-modal').classList.remove('active');
+            document.getElementById('new-username').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('new-user-protected').checked = false;
+        }
+
+        function saveNewUser() {
+            const username = document.getElementById('new-username').value.trim();
+            const password = document.getElementById('new-password').value;
+            const role = document.getElementById('new-role').value;
+            const protectedUser = document.getElementById('new-user-protected').checked;
+            
+            if (!username || !password || !role) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            if (username.length < 3) {
+                showToast('Username must be at least 3 characters', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            const userData = {
+                username,
+                password,
+                role,
+                protected: protectedUser
+            };
+            
+            fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('mcbp-token')
+                },
+                body: JSON.stringify(userData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeAddUserModal();
+                    loadUsers();
+                    showToast('User created successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to create user', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to create user:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function editUserPrompt(username) {
+            fetch(`/api/users/${encodeURIComponent(username)}`, {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    editingUserId = username;
+                    
+                    document.getElementById('edit-username-display').textContent = username;
+                    document.getElementById('edit-password').value = '';
+                    
+                    // Set current role
+                    const editRoleSelect = document.getElementById('edit-role');
+                    editRoleSelect.value = data.user.role;
+                    
+                    // Show/hide protected warning
+                    const protectedWarning = document.getElementById('edit-protected-warning');
+                    if (data.user.protected) {
+                        protectedWarning.classList.remove('hidden');
+                        document.querySelector('#edit-user-modal .btn').disabled = true;
+                    } else {
+                        protectedWarning.classList.add('hidden');
+                        document.querySelector('#edit-user-modal .btn').disabled = false;
+                    }
+                    
+                    document.getElementById('edit-user-modal').classList.add('active');
+                } else {
+                    showToast(data.message || 'Failed to load user', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load user:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function closeEditUserModal() {
+            document.getElementById('edit-user-modal').classList.remove('active');
+            editingUserId = null;
+        }
+
+        function saveUserChanges() {
+            if (!editingUserId) return;
+            
+            const password = document.getElementById('edit-password').value;
+            const role = document.getElementById('edit-role').value;
+            
+            const userData = {};
+            if (password) userData.password = password;
+            if (role) userData.role = role;
+            
+            if (Object.keys(userData).length === 0) {
+                showToast('No changes made', 'info');
+                closeEditUserModal();
+                return;
+            }
+            
+            fetch(`/api/users/${encodeURIComponent(editingUserId)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('mcbp-token')
+                },
+                body: JSON.stringify(userData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeEditUserModal();
+                    loadUsers();
+                    showToast('User updated successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to update user', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to update user:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function deleteUserPrompt(username) {
+            deletingUserId = username;
+            document.getElementById('delete-username').textContent = username;
+            
+            // Check if user is protected
+            fetch(`/api/users/${encodeURIComponent(username)}`, {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const protectedWarning = document.getElementById('delete-protected-warning');
+                const deleteBtn = document.getElementById('confirm-delete-btn');
+                
+                if (data.ok && data.user.protected) {
+                    protectedWarning.classList.remove('hidden');
+                    deleteBtn.disabled = true;
+                } else {
+                    protectedWarning.classList.add('hidden');
+                    deleteBtn.disabled = false;
+                }
+                
+                document.getElementById('delete-user-modal').classList.add('active');
+            })
+            .catch(error => {
+                console.error('Failed to check user:', error);
+                document.getElementById('delete-user-modal').classList.add('active');
+            });
+        }
+
+        function closeDeleteUserModal() {
+            document.getElementById('delete-user-modal').classList.remove('active');
+            deletingUserId = null;
+        }
+
+        function confirmDeleteUser() {
+            if (!deletingUserId) return;
+            
+            fetch(`/api/users/${encodeURIComponent(deletingUserId)}`, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeDeleteUserModal();
+                    loadUsers();
+                    showToast('User deleted successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to delete user', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to delete user:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                      type === 'error' ? 'exclamation-circle' : 
+                                      type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

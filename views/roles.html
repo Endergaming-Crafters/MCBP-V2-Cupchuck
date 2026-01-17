@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Management - MCBP V2</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <i class=""></i> MCBP V2
+            </div>
+            <div class="version">Cupchuck</div>
+        </div>
+        
+        <div class="topbar-right">
+            <div class="user-info">
+                <i class="fas fa-user"></i>
+                <span id="current-username">Loading...</span>
+            </div>
+            <button onclick="window.location.href='/dashboard'" class="btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button onclick="window.location.href='/users'" class="btn-secondary">
+                <i class="fas fa-users"></i> Users
+            </button>
+            <button onclick="logout()" class="btn-secondary">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="navigation mb-4">
+            <button onclick="window.location.href='/dashboard'" class="btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button onclick="window.location.href='/bots'" class="btn-secondary">
+                <i class="fas fa-server"></i> Bots
+            </button>
+            <button onclick="window.location.href='/users'" class="btn-secondary">
+                <i class="fas fa-users"></i> Users
+            </button>
+            <button onclick="window.location.href='/roles'" class="btn">
+                <i class="fas fa-user-tag"></i> Roles
+            </button>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header">
+                <h3><i class="fas fa-user-tag"></i> Role Management</h3>
+                <button onclick="showAddRoleModal()" class="btn" id="add-role-btn">
+                    <i class="fas fa-plus"></i> Add Role
+                </button>
+            </div>
+            <div class="panel-content">
+                <div id="roles-table-container">
+                    <table id="roles-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Level</th>
+                                <th>Permissions</th>
+                                <th>Protected</th>
+                                <th>Users</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roles-table-body">
+                            <!-- Roles will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="no-roles-message" class="empty-state">
+                    <i class="fas fa-user-tag"></i>
+                    <p>No roles found</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Role Modal -->
+    <div id="add-role-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-tag"></i> Create New Role</h3>
+                <button onclick="closeAddRoleModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="role-name">Role Name *</label>
+                    <input type="text" id="role-name" placeholder="e.g., Moderator">
+                </div>
+                
+                <div class="form-group">
+                    <label for="role-level">Level *</label>
+                    <input type="number" id="role-level" min="1" max="99" value="50">
+                    <small class="text-muted">Higher number = more permissions. Your level: <span id="current-user-level">50</span></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role-description">Description</label>
+                    <textarea id="role-description" rows="2" placeholder="Optional description"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <h4>Permissions</h4>
+                    <div class="permissions-grid" id="permissions-grid">
+                        <!-- Permissions will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeAddRoleModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveNewRole()" class="btn">Create Role</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Role Modal -->
+    <div id="edit-role-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Role</h3>
+                <button onclick="closeEditRoleModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Role Name</label>
+                    <div class="info-value" id="edit-role-name-display"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-role-level">Level</label>
+                    <input type="number" id="edit-role-level" min="1" max="99">
+                    <small class="text-muted">Higher number = more permissions. Your level: <span id="edit-current-user-level">50</span></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-role-description">Description</label>
+                    <textarea id="edit-role-description" rows="2"></textarea>
+                </div>
+                
+                <div id="edit-protected-warning" class="alert alert-warning hidden">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This is a protected role and cannot be modified.
+                </div>
+                
+                <div class="form-group">
+                    <h4>Permissions</h4>
+                    <div class="permissions-grid" id="edit-permissions-grid">
+                        <!-- Permissions will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeEditRoleModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveRoleChanges()" class="btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Role Modal -->
+    <div id="delete-role-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash"></i> Delete Role</h3>
+                <button onclick="closeDeleteRoleModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete role "<span id="delete-role-name"></span>"?</p>
+                <p class="text-muted">Users with this role will be assigned to the default "viewer" role.</p>
+                <div id="delete-protected-warning" class="alert alert-warning hidden">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Warning:</strong> This is a protected role and cannot be deleted.
+                </div>
+                <div id="delete-users-warning" class="alert alert-info hidden">
+                    <i class="fas fa-users"></i>
+                    <span id="delete-users-count">0</span> users will be affected.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDeleteRoleModal()" class="btn-secondary">Cancel</button>
+                <button onclick="confirmDeleteRole()" class="btn-danger" id="confirm-delete-role-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../common.js"></script>
+    <script>
+        let currentUser = null;
+        let allRoles = [];
+        let allPermissions = [];
+        let editingRoleId = null;
+        let deletingRoleId = null;
+        let currentUserRole = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadUserInfo();
+            loadRoles();
+            loadPermissions();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('mcbp-token');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            fetch('/api/verify', {
+                headers: { 'x-auth-token': token }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    localStorage.clear();
+                    window.location.href = '/';
+                }
+            })
+            .catch(() => {
+                localStorage.clear();
+                window.location.href = '/';
+            });
+        }
+
+        function loadUserInfo() {
+            const userStr = localStorage.getItem('mcbp-user');
+            if (userStr) {
+                currentUser = JSON.parse(userStr);
+                document.getElementById('current-username').textContent = currentUser.username;
+                
+                // Show/hide add button based on permissions
+                const canManageRoles = currentUser.permissions.includes('manage_roles') || 
+                                      currentUser.permissions.includes('*');
+                document.getElementById('add-role-btn').style.display = canManageRoles ? '' : 'none';
+            }
+        }
+
+        function loadRoles() {
+            fetch('/api/roles', {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    allRoles = data.roles;
+                    currentUserRole = allRoles.find(r => r.id === currentUser.role);
+                    renderRolesTable();
+                    
+                    // Update level displays
+                    if (currentUserRole) {
+                        document.getElementById('current-user-level').textContent = currentUserRole.level;
+                        document.getElementById('edit-current-user-level').textContent = currentUserRole.level;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load roles:', error);
+                showToast('Failed to load roles', 'error');
+            });
+        }
+
+        function loadPermissions() {
+            fetch('/api/permissions', {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    allPermissions = data.permissions;
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load permissions:', error);
+            });
+        }
+
+        function renderRolesTable() {
+            const tbody = document.getElementById('roles-table-body');
+            const noRoles = document.getElementById('no-roles-message');
+            
+            if (!allRoles || allRoles.length === 0) {
+                tbody.innerHTML = '';
+                noRoles.style.display = 'block';
+                return;
+            }
+            
+            noRoles.style.display = 'none';
+            
+            // Sort by level (descending)
+            const sortedRoles = [...allRoles].sort((a, b) => b.level - a.level);
+            
+            tbody.innerHTML = sortedRoles.map(role => {
+                // Check if current user can modify this role
+                const canModify = currentUserRole && 
+                                 currentUserRole.level > role.level && 
+                                 !role.protected &&
+                                 role.id !== currentUser.role;
+                
+                // Count users with this role
+                const userCount = countUsersWithRole(role.id);
+                
+                return `
+                    <tr>
+                        <td>
+                            <strong>${role.name}</strong>
+                            ${role.description ? `<div class="text-muted">${role.description}</div>` : ''}
+                        </td>
+                        <td>
+                            <span class="badge ${role.level >= 80 ? 'badge-primary' : 
+                                               role.level >= 50 ? 'badge-info' : 
+                                               role.level >= 20 ? 'badge-secondary' : 'badge'}">
+                                Level ${role.level}
+                            </span>
+                        </td>
+                        <td>
+                            ${role.permissions.includes('*') ? 
+                                '<span class="badge badge-success">All Permissions</span>' :
+                                `<span class="text-muted">${role.permissions.length} permissions</span>`
+                            }
+                        </td>
+                        <td>
+                            ${role.protected ? 
+                                '<span class="badge badge-warning">Protected</span>' : 
+                                '<span class="text-muted">No</span>'
+                            }
+                        </td>
+                        <td>
+                            <span class="${userCount > 0 ? 'text-primary' : 'text-muted'}">
+                                ${userCount} user${userCount !== 1 ? 's' : ''}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button onclick="editRolePrompt('${role.id}')" 
+                                        class="btn-secondary btn-sm"
+                                        ${!canModify ? 'disabled' : ''}>
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button onclick="deleteRolePrompt('${role.id}', '${role.name}')" 
+                                        class="btn-danger btn-sm"
+                                        ${!canModify ? 'disabled' : ''}>
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function countUsersWithRole(roleId) {
+            // This would normally come from the server
+            // For now, we'll show a placeholder
+            return 0; // Placeholder
+        }
+
+        function showAddRoleModal() {
+            if (!currentUserRole) {
+                showToast('Cannot determine your role level', 'error');
+                return;
+            }
+            
+            // Set max level to current user's level - 1
+            document.getElementById('role-level').max = currentUserRole.level - 1;
+            
+            // Populate permissions grid
+            populatePermissionsGrid('add');
+            
+            document.getElementById('add-role-modal').classList.add('active');
+            document.getElementById('role-name').focus();
+        }
+
+        function closeAddRoleModal() {
+            document.getElementById('add-role-modal').classList.remove('active');
+            document.getElementById('role-name').value = '';
+            document.getElementById('role-level').value = '50';
+            document.getElementById('role-description').value = '';
+        }
+
+        function populatePermissionsGrid(mode = 'add') {
+            const gridId = mode === 'add' ? 'permissions-grid' : 'edit-permissions-grid';
+            const grid = document.getElementById(gridId);
+            
+            if (!allPermissions || allPermissions.length === 0) {
+                grid.innerHTML = '<div class="text-muted">Loading permissions...</div>';
+                return;
+            }
+            
+            // Group permissions by category
+            const categories = {};
+            allPermissions.forEach(perm => {
+                const parts = perm.split('_');
+                const category = parts[0];
+                if (!categories[category]) {
+                    categories[category] = [];
+                }
+                categories[category].push(perm);
+            });
+            
+            // Create grid
+            grid.innerHTML = Object.entries(categories).map(([category, perms]) => `
+                <div class="permission-category">
+                    <h4>${category.charAt(0).toUpperCase() + category.slice(1)}</h4>
+                    ${perms.map(perm => `
+                        <div class="permission-item">
+                            <input type="checkbox" 
+                                   id="${mode}-${perm}" 
+                                   data-permission="${perm}"
+                                   ${mode === 'add' ? '' : ''}>
+                            <label for="${mode}-${perm}">
+                                ${formatPermissionName(perm)}
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        function formatPermissionName(permission) {
+            // Convert snake_case to readable text
+            return permission.split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
+        function saveNewRole() {
+            const name = document.getElementById('role-name').value.trim();
+            const level = parseInt(document.getElementById('role-level').value);
+            const description = document.getElementById('role-description').value.trim();
+            
+            if (!name || !level) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            if (level >= currentUserRole.level) {
+                showToast(`Level must be less than your level (${currentUserRole.level})`, 'error');
+                return;
+            }
+            
+            // Get selected permissions
+            const checkboxes = document.querySelectorAll('#permissions-grid input[type="checkbox"]:checked');
+            const permissions = Array.from(checkboxes).map(cb => cb.dataset.permission);
+            
+            if (permissions.length === 0) {
+                showToast('Please select at least one permission', 'error');
+                return;
+            }
+            
+            const roleData = {
+                name,
+                level,
+                description,
+                permissions,
+                protected: false
+            };
+            
+            fetch('/api/roles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('mcbp-token')
+                },
+                body: JSON.stringify(roleData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeAddRoleModal();
+                    loadRoles();
+                    showToast('Role created successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to create role', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to create role:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function editRolePrompt(roleId) {
+            const role = allRoles.find(r => r.id === roleId);
+            if (!role) {
+                showToast('Role not found', 'error');
+                return;
+            }
+            
+            editingRoleId = roleId;
+            
+            document.getElementById('edit-role-name-display').textContent = role.name;
+            document.getElementById('edit-role-level').value = role.level;
+            document.getElementById('edit-role-level').max = currentUserRole.level - 1;
+            document.getElementById('edit-role-description').value = role.description || '';
+            
+            // Show/hide protected warning
+            const protectedWarning = document.getElementById('edit-protected-warning');
+            if (role.protected) {
+                protectedWarning.classList.remove('hidden');
+                document.querySelector('#edit-role-modal .btn').disabled = true;
+            } else {
+                protectedWarning.classList.add('hidden');
+                document.querySelector('#edit-role-modal .btn').disabled = false;
+            }
+            
+            // Populate permissions grid with current selections
+            populatePermissionsGrid('edit');
+            
+            // Check the boxes for current permissions
+            setTimeout(() => {
+                if (role.permissions.includes('*')) {
+                    // Check all boxes
+                    document.querySelectorAll('#edit-permissions-grid input[type="checkbox"]').forEach(cb => {
+                        cb.checked = true;
+                    });
+                } else {
+                    role.permissions.forEach(perm => {
+                        const checkbox = document.getElementById(`edit-${perm}`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+            }, 100);
+            
+            document.getElementById('edit-role-modal').classList.add('active');
+        }
+
+        function closeEditRoleModal() {
+            document.getElementById('edit-role-modal').classList.remove('active');
+            editingRoleId = null;
+        }
+
+        function saveRoleChanges() {
+            if (!editingRoleId) return;
+            
+            const level = parseInt(document.getElementById('edit-role-level').value);
+            const description = document.getElementById('edit-role-description').value.trim();
+            
+            if (level >= currentUserRole.level) {
+                showToast(`Level must be less than your level (${currentUserRole.level})`, 'error');
+                return;
+            }
+            
+            // Get selected permissions
+            const checkboxes = document.querySelectorAll('#edit-permissions-grid input[type="checkbox"]:checked');
+            const permissions = Array.from(checkboxes).map(cb => cb.dataset.permission);
+            
+            if (permissions.length === 0) {
+                showToast('Please select at least one permission', 'error');
+                return;
+            }
+            
+            const roleData = {
+                level,
+                description,
+                permissions
+            };
+            
+            fetch(`/api/roles/${editingRoleId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('mcbp-token')
+                },
+                body: JSON.stringify(roleData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeEditRoleModal();
+                    loadRoles();
+                    showToast('Role updated successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to update role', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to update role:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function deleteRolePrompt(roleId, roleName) {
+            deletingRoleId = roleId;
+            document.getElementById('delete-role-name').textContent = roleName;
+            
+            const role = allRoles.find(r => r.id === roleId);
+            if (!role) return;
+            
+            // Check if role is protected
+            const protectedWarning = document.getElementById('delete-protected-warning');
+            const deleteBtn = document.getElementById('confirm-delete-role-btn');
+            
+            if (role.protected) {
+                protectedWarning.classList.remove('hidden');
+                deleteBtn.disabled = true;
+            } else {
+                protectedWarning.classList.add('hidden');
+                deleteBtn.disabled = false;
+            }
+            
+            // Get user count for this role
+            fetch(`/api/roles/${roleId}/users`, {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const usersWarning = document.getElementById('delete-users-warning');
+                const usersCount = document.getElementById('delete-users-count');
+                
+                if (data.ok && data.count > 0) {
+                    usersWarning.classList.remove('hidden');
+                    usersCount.textContent = data.count;
+                } else {
+                    usersWarning.classList.add('hidden');
+                }
+            })
+            .catch(() => {
+                document.getElementById('delete-users-warning').classList.add('hidden');
+            });
+            
+            document.getElementById('delete-role-modal').classList.add('active');
+        }
+
+        function closeDeleteRoleModal() {
+            document.getElementById('delete-role-modal').classList.remove('active');
+            deletingRoleId = null;
+        }
+
+        function confirmDeleteRole() {
+            if (!deletingRoleId) return;
+            
+            fetch(`/api/roles/${deletingRoleId}`, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeDeleteRoleModal();
+                    loadRoles();
+                    showToast('Role deleted successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to delete role', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to delete role:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                      type === 'error' ? 'exclamation-circle' : 
+                                      type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

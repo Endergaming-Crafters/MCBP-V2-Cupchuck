@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MCBP V2</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Socket.IO Client Library -->
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="dashboard-page">
+    <!-- Top Navigation Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <i class=></i> MCBP V2
+            </div>
+            <div class="version">Cupchuck</div>
+        </div>
+        
+        <div class="topbar-right">
+            <div class="user-info">
+                <i class="fas fa-user"></i>
+                <span id="current-username">Loading...</span>
+            </div>
+            <button onclick="logout()" class="btn-secondary">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Navigation -->
+    <div class="container">
+        <div class="navigation mb-4">
+            <button onclick="window.location.href='/dashboard'" class="btn">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button onclick="window.location.href='/bots'" class="btn-secondary">
+                <i class="fas fa-server"></i> Bots
+            </button>
+            <button onclick="window.location.href='/users'" class="btn-secondary">
+                <i class="fas fa-users"></i> Users
+            </button>
+            <button onclick="window.location.href='/roles'" class="btn-secondary">
+                <i class="fas fa-user-tag"></i> Roles
+            </button>
+            <button onclick="toggleTheme()" class="btn-secondary">
+                <i class="fas fa-moon"></i> Theme
+            </button>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid mb-4">
+            <div class="stat-card">
+                <div class="stat-value" id="total-bots">0</div>
+                <div class="stat-label">Total Bots</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="online-bots">0</div>
+                <div class="stat-label">Online</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="offline-bots">0</div>
+                <div class="stat-label">Offline</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="connecting-bots">0</div>
+                <div class="stat-label">Connecting</div>
+            </div>
+        </div>
+
+        <!-- Bot Status Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-server"></i> Bot Status</h3>
+                <div class="flex items-center">
+                    <div class="flex items-center mr-4">
+                        <span class="status-dot online mr-1"></span>
+                        <span class="text-muted">Online</span>
+                    </div>
+                    <div class="flex items-center mr-4">
+                        <span class="status-dot offline mr-1"></span>
+                        <span class="text-muted">Offline</span>
+                    </div>
+                    <div class="flex items-center mr-4">
+                        <span class="status-dot connecting mr-1"></span>
+                        <span class="text-muted">Connecting</span>
+                    </div>
+                    <button onclick="window.location.href='/bots'" class="btn-secondary ml-4">
+                        <i class="fas fa-cog"></i> Manage Bots
+                    </button>
+                </div>
+            </div>
+            <div class="panel-content">
+                <div id="bots-list" class="bots-grid">
+                    <!-- Bots will be loaded here -->
+                </div>
+                <div id="no-bots-message" class="empty-state">
+                    <i class="fas fa-server"></i>
+                    <p>No bots configured</p>
+                    <button onclick="window.location.href='/bots'" class="btn mt-2">
+                        <i class="fas fa-plus"></i> Create First Bot
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../common.js"></script>
+    <script>
+        let currentUser = null;
+        let socket = null;
+        let botStatuses = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadUserInfo();
+            loadBots();
+            setupWebSocket();
+            setupTheme();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('mcbp-token');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            fetch('/api/verify', {
+                headers: { 'x-auth-token': token }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    localStorage.clear();
+                    window.location.href = '/';
+                }
+            })
+            .catch(() => {
+                localStorage.clear();
+                window.location.href = '/';
+            });
+        }
+
+        function loadUserInfo() {
+            const userStr = localStorage.getItem('mcbp-user');
+            if (userStr) {
+                currentUser = JSON.parse(userStr);
+                document.getElementById('current-username').textContent = currentUser.username;
+            }
+        }
+
+        function loadBots() {
+            fetch('/api/bots', {
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    renderBots(data.bots);
+                    updateStats(data.bots);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load bots:', error);
+            });
+        }
+
+        function renderBots(bots) {
+            const container = document.getElementById('bots-list');
+            const noBots = document.getElementById('no-bots-message');
+            
+            if (!bots || bots.length === 0) {
+                container.innerHTML = '';
+                noBots.style.display = 'block';
+                return;
+            }
+
+            noBots.style.display = 'none';
+            
+            container.innerHTML = bots.map(bot => {
+                const status = botStatuses[bot.id] ? botStatuses[bot.id].status : (bot.status || 'offline');
+                const statusText = getStatusText(status);
+                const statusClass = getStatusClass(status);
+                
+                return `
+                    <div class="bot-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4>${bot.name}</h4>
+                                <div class="text-muted">
+                                    <small>${bot.username} @ ${bot.server}:${bot.port}</small>
+                                </div>
+                                <div class="mt-2 flex items-center">
+                                    <span class="status-dot ${statusClass} mr-2"></span>
+                                    <span class="${getStatusColorClass(status)}">${statusText}</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                ${status === 'online' ? `
+                                    <button onclick="stopBot('${bot.id}', event)" class="btn-danger btn-sm">
+                                        <i class="fas fa-stop"></i> Stop
+                                    </button>
+                                ` : `
+                                    <button onclick="startBot('${bot.id}', event)" class="btn-success btn-sm">
+                                        <i class="fas fa-play"></i> Start
+                                    </button>
+                                `}
+                                <button onclick="window.location.href='/bot-details?bot=${bot.id}'" class="btn-secondary btn-sm">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </button>
+                            </div>
+                        </div>
+                        
+                        ${bot.tags && bot.tags.length > 0 ? `
+                            <div class="mt-3">
+                                ${bot.tags.map(tag => `<span class="badge badge-secondary">${tag}</span>`).join(' ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'online': 'Online',
+                'offline': 'Offline',
+                'connecting': 'Connecting',
+                'reconnecting': 'Reconnecting'
+            };
+            return statusMap[status] || 'Offline';
+        }
+
+        function getStatusClass(status) {
+            if (status === 'reconnecting') return 'connecting';
+            if (status === 'error') return 'offline';
+            return status || 'offline';
+        }
+
+        function getStatusColorClass(status) {
+            switch(getStatusClass(status)) {
+                case 'online': return 'text-success';
+                case 'connecting': return 'text-warning';
+                default: return 'text-muted';
+            }
+        }
+
+        function updateStats(bots) {
+            if (!bots || bots.length === 0) {
+                document.getElementById('total-bots').textContent = '0';
+                document.getElementById('online-bots').textContent = '0';
+                document.getElementById('offline-bots').textContent = '0';
+                document.getElementById('connecting-bots').textContent = '0';
+                return;
+            }
+
+            let online = 0, offline = 0, connecting = 0;
+            
+            bots.forEach(bot => {
+                const status = botStatuses[bot.id] ? botStatuses[bot.id].status : (bot.status || 'offline');
+                
+                switch(getStatusClass(status)) {
+                    case 'online':
+                        online++;
+                        break;
+                    case 'connecting':
+                        connecting++;
+                        break;
+                    default:
+                        offline++;
+                        break;
+                }
+            });
+
+            document.getElementById('total-bots').textContent = bots.length;
+            document.getElementById('online-bots').textContent = online;
+            document.getElementById('offline-bots').textContent = offline;
+            document.getElementById('connecting-bots').textContent = connecting;
+        }
+
+        function setupWebSocket() {
+            const token = localStorage.getItem('mcbp-token');
+            if (!token) return;
+
+            if (typeof io === 'undefined') {
+                console.error('Socket.IO client library not loaded!');
+                return;
+            }
+
+            try {
+                socket = io({
+                    auth: { token },
+                    transports: ['websocket', 'polling']
+                });
+
+                socket.on('connect', () => {
+                    console.log('Dashboard WebSocket connected');
+                });
+
+                socket.on('bot-status', (status) => {
+                    botStatuses[status.botId] = status;
+                    loadBots();
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('WebSocket connection error:', error);
+                });
+
+                socket.on('disconnect', (reason) => {
+                    console.log('WebSocket disconnected:', reason);
+                });
+
+            } catch (error) {
+                console.error('Failed to setup WebSocket:', error);
+            }
+        }
+
+        function startBot(botId, event) {
+            if (event) event.stopPropagation();
+            
+            // Check permission
+            if (!checkPermission('start_bots')) return;
+            
+            fetch(`/api/bots/${botId}/start`, {
+                method: 'POST',
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.ok) {
+                    console.error('Failed to start bot:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to start bot:', error);
+            });
+        }
+
+        function stopBot(botId, event) {
+            if (event) event.stopPropagation();
+            
+            // Check permission
+            if (!checkPermission('stop_bots')) return;
+            
+            fetch(`/api/bots/${botId}/stop`, {
+                method: 'POST',
+                headers: { 'x-auth-token': localStorage.getItem('mcbp-token') }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.ok) {
+                    console.error('Failed to stop bot:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to stop bot:', error);
+            });
+        }
+
+        function setupTheme() {
+            const theme = localStorage.getItem('mcbp-theme') || 'auto';
+            if (theme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.body.classList.toggle('light-theme', !prefersDark);
+            } else {
+                document.body.classList.toggle('light-theme', theme === 'light');
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('mcbp-theme') || 'auto';
+            let newTheme;
+            
+            if (currentTheme === 'auto') newTheme = 'dark';
+            else if (currentTheme === 'dark') newTheme = 'light';
+            else newTheme = 'auto';
+            
+            localStorage.setItem('mcbp-theme', newTheme);
+            setupTheme();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

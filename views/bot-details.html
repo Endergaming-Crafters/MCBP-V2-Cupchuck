@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Details - MCBP V2</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Socket.IO Client Library -->
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bot-details-page">
+    <!-- Top Navigation Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <i class=""></i> MCBP V2
+            </div>
+            <div class="version">Cupchuck</div>
+        </div>
+        
+        <div class="topbar-right">
+            <div class="user-info">
+                <i class=""></i>
+                <span id="current-username">Loading...</span>
+            </div>
+            <button onclick="window.location.href='/dashboard'" class="btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button onclick="window.location.href='/bots'" class="btn-secondary">
+                <i class="fas fa-server"></i> Bots
+            </button>
+            <button onclick="logout()" class="btn-secondary">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="navigation mb-4">
+            <button onclick="window.location.href='/dashboard'" class="btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button onclick="window.location.href='/bots'" class="btn-secondary">
+                <i class="fas fa-server"></i> Bots
+            </button>
+            <button onclick="window.location.href='/users'" class="btn-secondary">
+                <i class="fas fa-users"></i> Users
+            </button>
+            <button onclick="window.location.href='/roles'" class="btn-secondary">
+                <i class="fas fa-user-tag"></i> Roles
+            </button>
+        </div>
+
+        <div id="loading-spinner" class="text-center p-5">
+            <div class="loading"></div>
+            <p>Loading bot details...</p>
+        </div>
+
+        <div id="bot-details" class="hidden">
+            <!-- Bot Header -->
+            <div class="panel mb-4">
+                <div class="panel-header">
+                    <div class="flex items-center gap-3">
+                        <div class="status-dot" id="bot-status-dot"></div>
+                        <div>
+                            <h2 id="bot-name">Bot Name</h2>
+                            <div class="text-muted" id="bot-connection">Connecting...</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="startBot()" class="btn-success" id="start-btn">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button onclick="stopBot()" class="btn-danger" id="stop-btn">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                        <button onclick="editBot()" class="btn-secondary" id="edit-btn">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button onclick="deleteBot()" class="btn-danger" id="delete-btn">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4" style="flex-wrap: wrap;">
+                <!-- Bot Information -->
+                <div class="panel" style="flex: 1; min-width: 300px;">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-info-circle"></i> Bot Information</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Username:</span>
+                                <span class="info-value" id="info-username">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Server:</span>
+                                <span class="info-value" id="info-server">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Version:</span>
+                                <span class="info-value" id="info-version">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Authentication:</span>
+                                <span class="info-value" id="info-auth">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Status:</span>
+                                <span class="info-value" id="info-status">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Created:</span>
+                                <span class="info-value" id="info-created">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Last Started:</span>
+                                <span class="info-value" id="info-last-started">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Uptime:</span>
+                                <span class="info-value" id="info-uptime">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h4>Tags</h4>
+                            <div id="bot-tags" class="tags">
+                                <!-- Tags will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot Stats -->
+                <div class="panel" style="flex: 1; min-width: 300px;">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-chart-bar"></i> Statistics</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div class="stats-grid-small">
+                            <div class="stat-card-small">
+                                <div class="stat-value" id="stat-ping">-</div>
+                                <div class="stat-label">Ping (ms)</div>
+                            </div>
+                            <div class="stat-card-small">
+                                <div class="stat-value" id="stat-packets">-</div>
+                                <div class="stat-label">Packets/sec</div>
+                            </div>
+                            <div class="stat-card-small">
+                                <div class="stat-value" id="stat-chunks">-</div>
+                                <div class="stat-label">Chunks Loaded</div>
+                            </div>
+                            <div class="stat-card-small">
+                                <div class="stat-value" id="stat-entities">-</div>
+                                <div class="stat-label">Entities</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h4>Position</h4>
+                            <div class="info-item">
+                                <span class="info-label">World:</span>
+                                <span class="info-value" id="info-world">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Dimension:</span>
+                                <span class="info-value" id="info-dimension">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Coordinates:</span>
+                                <span class="info-value" id="info-coords">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Commands Panel -->
+            <div class="panel mt-4">
+                <div class="panel-header">
+                    <h3><i class="fas fa-bolt"></i> Quick Commands</h3>
+                    <div class="flex gap-2">
+                        <button onclick="showAddQCModal()" class="btn-secondary" id="add-qc-btn">
+                            <i class="fas fa-plus"></i> Add QC
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="qc-list" class="qc-grid">
+                        <!-- Quick Commands will be loaded here -->
+                    </div>
+                    <div id="no-qc-message" class="empty-state">
+                        <i class="fas fa-bolt"></i>
+                        <p>No quick commands for this bot</p>
+                        <button onclick="showAddQCModal()" class="btn mt-2" id="add-first-qc-btn">
+                            <i class="fas fa-plus"></i> Create First QC
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bot Console -->
+            <div class="panel mt-4">
+                <div class="panel-header">
+                    <h3><i class="fas fa-terminal"></i> Console</h3>
+                    <div class="flex gap-2">
+                        <button onclick="clearConsole()" class="btn-secondary">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="bot-console" class="console-output"></div>
+                    <div class="console-input">
+                        <input type="text" 
+                               id="console-input" 
+                               placeholder="Type command or chat message..."
+                               onkeypress="handleConsoleKeypress(event)">
+                        <button onclick="sendConsoleMessage()" class="btn">
+                            <i class="fas fa-paper-plane"></i> Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Bot Modal -->
+    <div id="edit-bot-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Bot</h3>
+                <button onclick="closeEditModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-bot-name">Bot Name *</label>
+                    <input type="text" id="edit-bot-name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bot-username">Minecraft Username *</label>
+                    <input type="text" id="edit-bot-username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bot-password">AuthMe Password</label>
+                    <input type="password" id="edit-bot-password" placeholder="Leave blank to keep current">
+                    <small class="text-muted">Only enter if you want to change the password</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bot-server">Server Address *</label>
+                    <input type="text" id="edit-bot-server">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bot-port">Server Port</label>
+                    <input type="number" id="edit-bot-port" min="1" max="65535">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bot-version">Minecraft Version</label>
+                    <input type="text" id="edit-bot-version">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bot-auth">Authentication Type</label>
+                    <select id="edit-bot-auth">
+                        <option value="offline">Offline (Cracked)</option>
+                        <option value="microsoft">Microsoft Account</option>
+                        <option value="mojang">Mojang Account</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox">
+                        <input type="checkbox" id="edit-bot-enabled">
+                        <span>Enabled</span>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bot-tags">Tags (comma separated)</label>
+                    <input type="text" id="edit-bot-tags">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeEditModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveBotChanges()" class="btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Bot Modal -->
+    <div id="delete-bot-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash"></i> Delete Bot</h3>
+                <button onclick="closeDeleteModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete "<span id="delete-bot-name"></span>"?</p>
+                <p class="text-muted">This will permanently remove the bot configuration. Any running instance will be stopped.</p>
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDeleteModal()" class="btn-secondary">Cancel</button>
+                <button onclick="confirmDeleteBot()" class="btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add QC Modal -->
+    <div id="add-qc-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Add Quick Command</h3>
+                <button onclick="closeAddQCModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="qc-name">Command Name *</label>
+                    <input type="text" id="qc-name" placeholder="e.g., Go Home">
+                </div>
+                <div class="form-group">
+                    <label for="qc-command">Command *</label>
+                    <input type="text" id="qc-command" placeholder="e.g., /home">
+                    <small class="text-muted">This command will be sent to the bot</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeAddQCModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveQC()" class="btn">Save QC</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit QC Modal -->
+    <div id="edit-qc-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Quick Command</h3>
+                <button onclick="closeEditQCModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-qc-name">Command Name *</label>
+                    <input type="text" id="edit-qc-name" placeholder="e.g., Go Home">
+                </div>
+                <div class="form-group">
+                    <label for="edit-qc-command">Command *</label>
+                    <input type="text" id="edit-qc-command" placeholder="e.g., /home">
+                    <small class="text-muted">This command will be sent to the bot</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeEditQCModal()" class="btn-secondary">Cancel</button>
+                <button onclick="updateQC()" class="btn">Update QC</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete QC Modal -->
+    <div id="delete-qc-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash"></i> Delete Quick Command</h3>
+                <button onclick="closeDeleteQCModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete "<span id="delete-qc-name"></span>"?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDeleteQCModal()" class="btn-secondary">Cancel</button>
+                <button onclick="confirmDeleteQC()" class="btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../common.js"></script>
+    <script>
+        let currentUser = null;
+        let currentBotId = null;
+        let currentBot = null;
+        let socket = null;
+        let quickCommands = [];
+        let editingQCId = null;
+        let deletingQCId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Bot Details page loaded');
+            checkAuth();
+            loadUserInfo();
+            getBotIdFromUrl();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('mcbp-token');
+            console.log('Auth check - Token exists:', !!token);
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            fetch('/api/verify', {
+                headers: { 'x-auth-token': token }
+            })
+            .then(response => {
+                console.log('Token verification response:', response.status);
+                if (!response.ok) {
+                    localStorage.clear();
+                    window.location.href = '/';
+                }
+            })
+            .catch((error) => {
+                console.error('Token verification error:', error);
+                localStorage.clear();
+                window.location.href = '/';
+            });
+        }
+
+        function loadUserInfo() {
+            const userStr = localStorage.getItem('mcbp-user');
+            if (userStr) {
+                try {
+                    currentUser = JSON.parse(userStr);
+                    document.getElementById('current-username').textContent = currentUser.username;
+                    console.log('User loaded:', currentUser.username);
+                    
+                    // Show/hide QC buttons based on permissions
+                    const canCreateQC = currentUser.permissions.includes('create_qc') || 
+                                       currentUser.permissions.includes('*');
+                    document.getElementById('add-qc-btn').style.display = canCreateQC ? '' : 'none';
+                    document.getElementById('add-first-qc-btn').style.display = canCreateQC ? '' : 'none';
+                } catch (e) {
+                    console.error('Failed to parse user data:', e);
+                }
+            }
+        }
+
+        function getBotIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentBotId = urlParams.get('bot');
+            
+            console.log('Bot ID from URL:', currentBotId);
+            
+            if (!currentBotId) {
+                console.warn('No bot ID in URL, redirecting to bots page');
+                window.location.href = '/bots';
+                return;
+            }
+            
+            loadBotDetails();
+        }
+
+        function loadBotDetails() {
+            console.log('Loading bot details for ID:', currentBotId);
+            
+            const token = localStorage.getItem('mcbp-token');
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}`;
+            
+            fetch(apiUrl, {
+                headers: { 
+                    'x-auth-token': token,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Unauthorized - Please login again');
+                    } else if (response.status === 404) {
+                        throw new Error('Bot not found');
+                    } else {
+                        throw new Error(`HTTP Error ${response.status}`);
+                    }
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Bot data received:', data);
+                if (data.ok) {
+                    currentBot = data.bot;
+                    console.log('Bot loaded successfully:', currentBot.name);
+                    displayBotDetails();
+                    loadQuickCommands();
+                    setupWebSocket();
+                } else {
+                    console.error('API returned error:', data.message);
+                    showToast(data.message || 'Bot not found', 'error');
+                    setTimeout(() => window.location.href = '/bots', 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load bot details:', error);
+                let errorMessage = error.message;
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Cannot connect to server';
+                }
+                showToast(errorMessage, 'error');
+                setTimeout(() => window.location.href = '/bots', 3000);
+            });
+        }
+
+        function displayBotDetails() {
+            console.log('Displaying bot details for:', currentBot.name);
+            document.getElementById('loading-spinner').classList.add('hidden');
+            document.getElementById('bot-details').classList.remove('hidden');
+            
+            // Basic info
+            document.getElementById('bot-name').textContent = currentBot.name;
+            document.getElementById('info-username').textContent = currentBot.username;
+            document.getElementById('info-server').textContent = `${currentBot.server}:${currentBot.port}`;
+            document.getElementById('info-version').textContent = currentBot.version;
+            document.getElementById('info-auth').textContent = currentBot.auth === 'offline' ? 'Offline' : 'Online';
+            document.getElementById('info-created').textContent = formatDate(currentBot.created);
+            document.getElementById('info-last-started').textContent = currentBot.lastStarted ? formatDate(currentBot.lastStarted) : 'Never';
+            
+            // Tags
+            const tagsContainer = document.getElementById('bot-tags');
+            if (currentBot.tags && currentBot.tags.length > 0) {
+                tagsContainer.innerHTML = currentBot.tags.map(tag => 
+                    `<span class="badge badge-secondary">${tag}</span>`
+                ).join(' ');
+            } else {
+                tagsContainer.innerHTML = '<span class="text-muted">No tags</span>';
+            }
+            
+            updateActionButtons();
+        }
+
+        function updateActionButtons() {
+            // These will be checked when buttons are clicked
+        }
+
+        function hasPermission(permission) {
+            if (!currentUser) return false;
+            return currentUser.permissions.includes('*') || currentUser.permissions.includes(permission);
+        }
+
+        function loadQuickCommands() {
+            const token = localStorage.getItem('mcbp-token');
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}/quick-commands`;
+            
+            fetch(apiUrl, {
+                headers: { 
+                    'x-auth-token': token,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    quickCommands = data.commands;
+                    renderQuickCommands();
+                } else {
+                    console.error('Failed to load QCs:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load quick commands:', error);
+            });
+        }
+
+        function renderQuickCommands() {
+            const container = document.getElementById('qc-list');
+            const noQC = document.getElementById('no-qc-message');
+            
+            if (!quickCommands || quickCommands.length === 0) {
+                container.innerHTML = '';
+                noQC.style.display = 'block';
+                return;
+            }
+            
+            noQC.style.display = 'none';
+            
+            const canEditQC = hasPermission('edit_qc');
+            const canDeleteQC = hasPermission('delete_qc');
+            const canUseQC = hasPermission('use_qc');
+            
+            container.innerHTML = quickCommands.map(qc => `
+                <div class="qc-card">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4>${qc.name}</h4>
+                            <div class="text-muted">
+                                <code>${qc.command}</code>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            ${canUseQC ? `
+                                <button onclick="executeQC('${qc.id}')" class="btn-success btn-sm">
+                                    <i class="fas fa-play"></i> Execute
+                                </button>
+                            ` : ''}
+                            ${canEditQC ? `
+                                <button onclick="editQCPrompt('${qc.id}')" class="btn-secondary btn-sm">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            ` : ''}
+                            ${canDeleteQC ? `
+                                <button onclick="deleteQCPrompt('${qc.id}', '${qc.name}')" 
+                                        class="btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddQCModal() {
+            if (!checkPermission('create_qc')) return;
+            
+            document.getElementById('qc-name').value = '';
+            document.getElementById('qc-command').value = '';
+            document.getElementById('add-qc-modal').classList.add('active');
+            document.getElementById('qc-name').focus();
+        }
+
+        function closeAddQCModal() {
+            document.getElementById('add-qc-modal').classList.remove('active');
+        }
+
+        function saveQC() {
+            const name = document.getElementById('qc-name').value.trim();
+            const command = document.getElementById('qc-command').value.trim();
+            
+            if (!name || !command) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            const token = localStorage.getItem('mcbp-token');
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}/quick-commands`;
+            
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({ name, command })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeAddQCModal();
+                    loadQuickCommands();
+                    showToast('Quick command created successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to create quick command', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to save QC:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function editQCPrompt(qcId) {
+            if (!checkPermission('edit_qc')) return;
+            
+            const qc = quickCommands.find(q => q.id === qcId);
+            if (!qc) return;
+            
+            editingQCId = qcId;
+            document.getElementById('edit-qc-name').value = qc.name;
+            document.getElementById('edit-qc-command').value = qc.command;
+            document.getElementById('edit-qc-modal').classList.add('active');
+        }
+
+        function closeEditQCModal() {
+            document.getElementById('edit-qc-modal').classList.remove('active');
+            editingQCId = null;
+        }
+
+        function updateQC() {
+            if (!editingQCId) return;
+            
+            const name = document.getElementById('edit-qc-name').value.trim();
+            const command = document.getElementById('edit-qc-command').value.trim();
+            
+            if (!name || !command) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            const token = localStorage.getItem('mcbp-token');
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}/quick-commands/${editingQCId}`;
+            
+            fetch(apiUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({ name, command })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeEditQCModal();
+                    loadQuickCommands();
+                    showToast('Quick command updated successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to update quick command', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to update QC:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function deleteQCPrompt(qcId, qcName) {
+            if (!checkPermission('delete_qc')) return;
+            
+            deletingQCId = qcId;
+            document.getElementById('delete-qc-name').textContent = qcName;
+            document.getElementById('delete-qc-modal').classList.add('active');
+        }
+
+        function closeDeleteQCModal() {
+            document.getElementById('delete-qc-modal').classList.remove('active');
+            deletingQCId = null;
+        }
+
+        function confirmDeleteQC() {
+            if (!deletingQCId) return;
+            
+            const token = localStorage.getItem('mcbp-token');
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}/quick-commands/${deletingQCId}`;
+            
+            fetch(apiUrl, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeDeleteQCModal();
+                    loadQuickCommands();
+                    showToast('Quick command deleted successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to delete quick command', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to delete QC:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function executeQC(qcId) {
+            if (!checkPermission('use_qc')) return;
+            
+            const token = localStorage.getItem('mcbp-token');
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}/quick-commands/${qcId}/execute`;
+            
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    showToast('Command executed', 'success');
+                } else {
+                    showToast(data.message || 'Failed to execute command', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to execute QC:', error);
+                showToast('Network error', 'error');
+            });
+        }
+
+        function setupWebSocket() {
+            console.log('Setting up WebSocket connection...');
+            
+            const token = localStorage.getItem('mcbp-token');
+            if (!token) {
+                console.error('No auth token for WebSocket');
+                return;
+            }
+            
+            if (typeof io === 'undefined') {
+                console.error('Socket.IO client library not loaded!');
+                showToast('Real-time features disabled - Socket.IO not loaded', 'warning');
+                return;
+            }
+            
+            try {
+                socket = io({
+                    auth: { token },
+                    transports: ['websocket', 'polling']
+                });
+
+                socket.on('connect', () => {
+                    console.log('WebSocket connected successfully');
+                    socket.emit('request-bot-status', { botId: currentBotId });
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('WebSocket connection error:', error);
+                });
+
+                socket.on('bot-status', (status) => {
+                    if (status.botId === currentBotId) {
+                        updateBotStatus(status);
+                    }
+                });
+
+                socket.on('bot-stats', (stats) => {
+                    if (stats.botId === currentBotId) {
+                        updateBotStats(stats);
+                    }
+                });
+
+                socket.on('bot-log', (log) => {
+                    if (log.botId === currentBotId) {
+                        appendConsole(log.message, log.level);
+                    }
+                });
+
+                socket.on('bot-chat', (chat) => {
+                    if (chat.botId === currentBotId) {
+                        const color = chat.username === currentBot.username ? '#4caf50' : '#2196f3';
+                        appendConsole(`<span style="color:${color}">&lt;${chat.username}&gt; ${chat.message}</span>`, 'chat');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Failed to setup WebSocket:', error);
+            }
+        }
+
+        function updateBotStatus(status) {
+            const statusDot = document.getElementById('bot-status-dot');
+            const statusText = document.getElementById('info-status');
+            const connectionText = document.getElementById('bot-connection');
+            
+            statusDot.className = 'status-dot';
+            if (status.status) {
+                statusDot.classList.add(status.status === 'reconnecting' ? 'connecting' : status.status);
+            }
+            
+            const statusMap = {
+                online: 'Online',
+                offline: 'Offline',
+                connecting: 'Connecting',
+                reconnecting: 'Reconnecting',
+                error: 'Error'
+            };
+            statusText.textContent = statusMap[status.status] || status.status || 'Unknown';
+            
+            if (status.status === 'online') {
+                connectionText.textContent = `Connected to ${currentBot.server}:${currentBot.port}`;
+                document.getElementById('start-btn').style.display = 'none';
+                document.getElementById('stop-btn').style.display = '';
+                
+                if (status.connectedSince) {
+                    const uptime = calculateUptime(status.connectedSince);
+                    document.getElementById('info-uptime').textContent = uptime;
+                }
+            } else {
+                connectionText.textContent = status.message || 'Disconnected';
+                document.getElementById('start-btn').style.display = '';
+                document.getElementById('stop-btn').style.display = 'none';
+                document.getElementById('info-uptime').textContent = '-';
+            }
+            
+            if (status.position) {
+                document.getElementById('info-coords').textContent = 
+                    `${Math.round(status.position.x)}, ${Math.round(status.position.y)}, ${Math.round(status.position.z)}`;
+            }
+            
+            if (status.world) {
+                document.getElementById('info-world').textContent = status.world;
+            }
+            
+            if (status.dimension) {
+                document.getElementById('info-dimension').textContent = status.dimension;
+            }
+            
+            document.getElementById('info-status').textContent = statusMap[status.status] || status.status || 'Unknown';
+        }
+
+        function updateBotStats(stats) {
+            document.getElementById('stat-ping').textContent = stats.ping || '-';
+            document.getElementById('stat-packets').textContent = stats.packetsPerSecond || '-';
+            document.getElementById('stat-chunks').textContent = stats.chunksLoaded || '-';
+            document.getElementById('stat-entities').textContent = stats.entities || '-';
+        }
+
+        function calculateUptime(connectedSince) {
+            const connected = new Date(connectedSince);
+            const now = new Date();
+            const diff = now - connected;
+            
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) {
+                return `${days}d ${hours % 24}h`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds % 60}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString();
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        function startBot() {
+            if (!checkPermission('start_bots')) return;
+            
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}/start`;
+            
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: { 
+                    'x-auth-token': localStorage.getItem('mcbp-token'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.ok) {
+                    showToast(data.message || 'Failed to start bot', 'error');
+                } else {
+                    showToast('Bot start command sent', 'success');
+                }
+            })
+            .catch(error => {
+                showToast('Failed to start bot: ' + error.message, 'error');
+            });
+        }
+
+        function stopBot() {
+            if (!checkPermission('stop_bots')) return;
+            
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}/stop`;
+            
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: { 
+                    'x-auth-token': localStorage.getItem('mcbp-token'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.ok) {
+                    showToast(data.message || 'Failed to stop bot', 'error');
+                } else {
+                    showToast('Bot stop command sent', 'success');
+                }
+            })
+            .catch(error => {
+                showToast('Failed to stop bot: ' + error.message, 'error');
+            });
+        }
+
+        function editBot() {
+            if (!checkPermission('edit_bots')) return;
+            
+            document.getElementById('edit-bot-name').value = currentBot.name;
+            document.getElementById('edit-bot-username').value = currentBot.username;
+            document.getElementById('edit-bot-password').value = '';
+            document.getElementById('edit-bot-server').value = currentBot.server;
+            document.getElementById('edit-bot-port').value = currentBot.port;
+            document.getElementById('edit-bot-version').value = currentBot.version;
+            document.getElementById('edit-bot-auth').value = currentBot.auth;
+            document.getElementById('edit-bot-enabled').checked = currentBot.enabled !== false;
+            document.getElementById('edit-bot-tags').value = currentBot.tags ? currentBot.tags.join(', ') : '';
+            
+            document.getElementById('edit-bot-modal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-bot-modal').classList.remove('active');
+        }
+
+        function saveBotChanges() {
+            const name = document.getElementById('edit-bot-name').value.trim();
+            const username = document.getElementById('edit-bot-username').value.trim();
+            const password = document.getElementById('edit-bot-password').value;
+            const server = document.getElementById('edit-bot-server').value.trim();
+            const port = parseInt(document.getElementById('edit-bot-port').value);
+            const version = document.getElementById('edit-bot-version').value.trim();
+            const auth = document.getElementById('edit-bot-auth').value;
+            const enabled = document.getElementById('edit-bot-enabled').checked;
+            const tags = document.getElementById('edit-bot-tags').value.split(',').map(t => t.trim()).filter(t => t);
+            
+            if (!name || !username || !server || !version) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            if (isNaN(port) || port < 1 || port > 65535) {
+                showToast('Port must be between 1 and 65535', 'error');
+                return;
+            }
+            
+            const botData = {
+                name,
+                username,
+                server,
+                port,
+                version,
+                auth,
+                enabled,
+                tags
+            };
+            
+            if (password) {
+                botData.password = password;
+            }
+            
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}`;
+            
+            fetch(apiUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('mcbp-token')
+                },
+                body: JSON.stringify(botData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    closeEditModal();
+                    loadBotDetails();
+                    showToast('Bot updated successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to update bot', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Failed to update bot: ' + error.message, 'error');
+            });
+        }
+
+        function deleteBot() {
+            if (!checkPermission('delete_bots')) return;
+            
+            document.getElementById('delete-bot-name').textContent = currentBot.name;
+            document.getElementById('delete-bot-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-bot-modal').classList.remove('active');
+        }
+
+        function confirmDeleteBot() {
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/bots/${currentBotId}`;
+            
+            fetch(apiUrl, {
+                method: 'DELETE',
+                headers: { 
+                    'x-auth-token': localStorage.getItem('mcbp-token'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    showToast('Bot deleted successfully', 'success');
+                    setTimeout(() => window.location.href = '/bots', 1000);
+                } else {
+                    showToast(data.message || 'Failed to delete bot', 'error');
+                    closeDeleteModal();
+                }
+            })
+            .catch(error => {
+                showToast('Failed to delete bot: ' + error.message, 'error');
+                closeDeleteModal();
+            });
+        }
+
+        function appendConsole(message, level = 'info') {
+            const consoleDiv = document.getElementById('bot-console');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                info: 'var(--info-color)',
+                error: 'var(--error-color)',
+                warning: 'var(--warning-color)',
+                success: 'var(--success-color)',
+                chat: 'var(--text-primary)'
+            }[level] || 'var(--text-primary)';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.innerHTML = `<span style="color:var(--text-muted)">[${timestamp}]</span> <span style="color:${color}">${message}</span>`;
+            consoleDiv.appendChild(messageDiv);
+            
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            
+            if (consoleDiv.children.length > 1000) {
+                consoleDiv.removeChild(consoleDiv.firstChild);
+            }
+        }
+
+        function clearConsole() {
+            document.getElementById('bot-console').innerHTML = '';
+        }
+
+        function handleConsoleKeypress(event) {
+            if (event.key === 'Enter') {
+                sendConsoleMessage();
+            }
+        }
+
+        function sendConsoleMessage() {
+            if (!checkPermission('send_messages')) return;
+            
+            const input = document.getElementById('console-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            const baseUrl = window.location.origin;
+            const apiUrl = `${baseUrl}/api/chat`;
+            
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('mcbp-token')
+                },
+                body: JSON.stringify({ 
+                    message: message,
+                    botId: currentBotId 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    appendConsole(`Sent: ${message}`, 'info');
+                    input.value = '';
+                } else {
+                    showToast(data.message || 'Failed to send message', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Failed to send message: ' + error.message, 'error');
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                      type === 'error' ? 'exclamation-circle' : 
+                                      type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
